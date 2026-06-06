@@ -10,6 +10,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 @RequestMapping("/products")
@@ -66,6 +69,39 @@ public class ProductController {
     @PostMapping("/{id}/delete")
     public String delete(@PathVariable Long id) {
         productService.deleteById(id);
+        return "redirect:/products";
+    }
+
+    // 수정 폼 화면 표시 (기존 데이터 pre-fill)
+    @GetMapping("/{id}/edit")
+    public String editProductForm(@PathVariable Long id, Model model) {
+        Product product = productService.findById(id);
+
+        ProductDto dto = new ProductDto();
+        dto.setName(product.getName());
+        dto.setPrice(product.getPrice());
+        dto.setStock(product.getStock());
+        dto.setDescription(product.getDescription());
+
+        model.addAttribute("productDto", dto);
+        model.addAttribute("productId", id);
+        return "products/edit";
+    }
+
+    // 수정 내용 저장 및 Flash 메시지 처리
+    @PostMapping("/{id}/edit")
+    public String editProduct(@PathVariable Long id,
+                              @Valid @ModelAttribute ProductDto productDto,
+                              BindingResult bindingResult,
+                              Model model,
+                              RedirectAttributes ra) {
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("productId", id);
+            return "products/edit";
+        }
+
+        productService.updateProduct(id, productDto);
+        ra.addFlashAttribute("successMessage", "상품이 수정되었습니다.");
         return "redirect:/products";
     }
 }
